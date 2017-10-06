@@ -1,0 +1,11 @@
+language: nix
+sudo: false
+
+matrix:
+    include:
+        - os: osx
+          osx_image: xcode7.3
+          script: ./setup.sh
+
+notifications:
+email: false
