@@ -192,7 +192,11 @@ go.stdenv.mkDerivation (
     mkdir -p $bin
     dir="$NIX_BUILD_TOP/go/bin"
     [ -e "$dir" ] && cp -r $dir $bin
-
+  '' + ( lib.optionalString ( go.stdenv.isDarwin ) ''
+    for binary in $bin/bin/*; do
+        install_name_tool -delete_rpath $out/lib -add_rpath $bin $binary
+    done
+  '' ) + ''
     runHook postInstall
   '';
 
