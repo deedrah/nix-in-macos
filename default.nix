@@ -4,7 +4,7 @@ let
   callPackage = lib.callPackageWith (pkgs // bigone);
 
   bigone = rec {
-    go = pkgs.go_1_8 // rec {
+    go = ( pkgs.go_1_8.override { git = if go.stdenv.isDarwin then pkgs.gitMinimal else pkgs.git;  } ) // rec {
       buildGoPackage = callPackage ./build-support/build-go-package.nix {};
       compile-protos = callPackage ./build-support/go-compile-protos { python = python3; protobuf = protobuf3_3; };
 
