@@ -71,7 +71,7 @@ go.stdenv.mkDerivation (
   (builtins.removeAttrs args [ "goPackageAliases" "disabled" "goDeps" ]) // {
 
   inherit name;
-  nativeBuildInputs = [ removeReferencesTo go parallel rsync ]
+  nativeBuildInputs = [ removeReferencesTo go parallel ]
     ++ (lib.optional (!dontRenameImports) govers) ++ nativeBuildInputs;
   buildInputs = [ go ] ++ buildInputs;
 
@@ -117,6 +117,8 @@ go.stdenv.mkDerivation (
       rename = to: from: "echo Renaming '${from}' to '${to}'; govers -d -m ${from} ${to}";
       renames = p: lib.concatMapStringsSep "\n" (rename p.goPackagePath) p.goPackageAliases;
     in lib.concatMapStringsSep "\n" renames inputsWithAliases);
+
+  NIX_NO_SELF_RPATH = true;
 
   buildPhase = args.buildPhase or ''
     runHook preBuild
@@ -194,8 +196,14 @@ go.stdenv.mkDerivation (
     [ -e "$dir" ] && cp -r $dir $bin
   '' + ( lib.optionalString ( go.stdenv.isDarwin ) ''
     for binary in $bin/bin/*; do
-        otool -l $binary || true
-        install_name_tool -rpath $out/lib $bin $binary || true
+      otool -l $binary || true
+      #local OUT
+      #if ! OUT="$(install_name_tool -delete_rpath $out/lib $binary 2>&1)"; then
+      #  if ! echo "$OUT" | grep -qE 'no LC_RPATH load command with path'; then
+      #    echo "$OUT" >&2
+      #    return 1
+      #  fi
+      #fi
     done
   '' ) + ''
     runHook postInstall
@@ -232,9 +240,9 @@ go.stdenv.mkDerivation (
     done
 
     mkdir -p src
-    rsync -a --delete-after $d/src .
+    ${rsync}/bin/rsync -a --delete-after $d/src .
     mkdir -p pkg
-    rsync -a $d/pkg .
+    ${rsync}/bin/rsync -a $d/pkg .
     export GOPATH="$PWD"
     export GOBIN="$PWD/bin"
     #export PATH="$PATH:$GOBIN"
