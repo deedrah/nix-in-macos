@@ -1,4 +1,4 @@
-{ go, govers, parallel, lib, fetchgit, fetchhg, rsync, removeReferencesTo, patchelf }:
+{ go, govers, parallel, lib, fetchgit, fetchhg, rsync, removeReferencesTo }:
 
 { name, buildInputs ? [], nativeBuildInputs ? [], passthru ? {}, preFixup ? ""
 
@@ -65,13 +65,21 @@ let
 
   goPath = if goDeps != null then goDeps ++ extraSrcs
                              else extraSrcs;
+
+  archPath = let
+    archDict = {
+      "x86_64-linux" = "linux_amd64";
+      "x86_64-darwin" = "darwin_amd64";
+    };
+  in archDict."${go.stdenv.system}";
+
 in
 
 go.stdenv.mkDerivation (
   (builtins.removeAttrs args [ "goPackageAliases" "disabled" "goDeps" ]) // {
 
   inherit name;
-  nativeBuildInputs = [ removeReferencesTo go parallel patchelf ]
+  nativeBuildInputs = [ removeReferencesTo go parallel ]
     ++ (lib.optional (!dontRenameImports) govers) ++ nativeBuildInputs;
   buildInputs = [ go ] ++ buildInputs;
 
@@ -118,7 +126,7 @@ go.stdenv.mkDerivation (
       renames = p: lib.concatMapStringsSep "\n" (rename p.goPackagePath) p.goPackageAliases;
     in lib.concatMapStringsSep "\n" renames inputsWithAliases);
 
-  #NIX_NO_SELF_RPATH = true;
+  NIX_NO_SELF_RPATH = true;
 
   buildPhase = args.buildPhase or ''
     runHook preBuild
@@ -194,18 +202,7 @@ go.stdenv.mkDerivation (
     mkdir -p $bin
     dir="$NIX_BUILD_TOP/go/bin"
     [ -e "$dir" ] && cp -r $dir $bin
-  '' + ( lib.optionalString ( go.stdenv.isDarwin ) ''
-    for binary in $bin/bin/*; do
-      otool -l $binary || true
-      #local OUT
-      #if ! OUT="$(install_name_tool -delete_rpath $out/lib $binary 2>&1)"; then
-      #  if ! echo "$OUT" | grep -qE 'no LC_RPATH load command with path'; then
-      #    echo "$OUT" >&2
-      #    return 1
-      #  fi
-      #fi
-    done
-  '' ) + ''
+
     runHook postInstall
   '';
 
@@ -222,12 +219,12 @@ go.stdenv.mkDerivation (
   '' + toString ( map ( dep: if dep ? goPackagePath then ''
     mkdir -p "$d/src/$(dirname "${dep.goPackagePath}")"
     ln -s "${toString dep.out}/share/go/src/${dep.goPackagePath}" "$d/src/${dep.goPackagePath}"
-    mkdir -p "$d/pkg/linux_amd64/$(dirname "${dep.goPackagePath}")"
-    if [ -d "${dep.out}/share/go/pkg/linux_amd64/${dep.goPackagePath}" ]; then
-        ln -s "${dep.out}/share/go/pkg/linux_amd64/${dep.goPackagePath}" "$d/pkg/linux_amd64/${dep.goPackagePath}"
+    mkdir -p "$d/pkg/${archPath}/$(dirname "${dep.goPackagePath}")"
+    if [ -d "${dep.out}/share/go/pkg/${archPath}/${dep.goPackagePath}" ]; then
+        ln -s "${dep.out}/share/go/pkg/${archPath}/${dep.goPackagePath}" "$d/pkg/${archPath}/${dep.goPackagePath}"
     fi
-    if [ -f "${dep.out}/share/go/pkg/linux_amd64/${dep.goPackagePath}.a" ]; then
-        ln -s "${dep.out}/share/go/pkg/linux_amd64/${dep.goPackagePath}.a" "$d/pkg/linux_amd64/${dep.goPackagePath}.a"
+    if [ -f "${dep.out}/share/go/pkg/${archPath}/${dep.goPackagePath}.a" ]; then
+        ln -s "${dep.out}/share/go/pkg/${archPath}/${dep.goPackagePath}.a" "$d/pkg/${archPath}/${dep.goPackagePath}.a"
     fi
   '' else "" ) buildInputs ) + ''
     mkdir -p "$d/src/$(dirname "${goPackagePath}")"
