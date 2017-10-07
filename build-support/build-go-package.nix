@@ -1,4 +1,4 @@
-{ go, govers, parallel, lib, fetchgit, fetchhg, rsync, removeReferencesTo }:
+{ go, govers, parallel, lib, fetchgit, fetchhg, rsync, removeReferencesTo, patchelf }:
 
 { name, buildInputs ? [], nativeBuildInputs ? [], passthru ? {}, preFixup ? ""
 
@@ -71,7 +71,7 @@ go.stdenv.mkDerivation (
   (builtins.removeAttrs args [ "goPackageAliases" "disabled" "goDeps" ]) // {
 
   inherit name;
-  nativeBuildInputs = [ removeReferencesTo go parallel ]
+  nativeBuildInputs = [ removeReferencesTo go parallel patchelf ]
     ++ (lib.optional (!dontRenameImports) govers) ++ nativeBuildInputs;
   buildInputs = [ go ] ++ buildInputs;
 
@@ -118,7 +118,7 @@ go.stdenv.mkDerivation (
       renames = p: lib.concatMapStringsSep "\n" (rename p.goPackagePath) p.goPackageAliases;
     in lib.concatMapStringsSep "\n" renames inputsWithAliases);
 
-  NIX_NO_SELF_RPATH = true;
+  #NIX_NO_SELF_RPATH = true;
 
   buildPhase = args.buildPhase or ''
     runHook preBuild
