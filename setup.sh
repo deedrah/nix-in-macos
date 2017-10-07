@@ -3,6 +3,7 @@
 set -e
 
 #curl https://nixos.org/nix/install | sh
+nix-build -A go -Q
 nix-env -iA nixpkgs.tree
 nix-build -A go.x.text
 tree ./result-bin
