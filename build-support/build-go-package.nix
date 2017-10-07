@@ -194,7 +194,8 @@ go.stdenv.mkDerivation (
     [ -e "$dir" ] && cp -r $dir $bin
   '' + ( lib.optionalString ( go.stdenv.isDarwin ) ''
     for binary in $bin/bin/*; do
-        install_name_tool -delete_rpath $out/lib -add_rpath $bin $binary
+        otool -l $binary || true
+        install_name_tool -rpath $out/lib $bin $binary || true
     done
   '' ) + ''
     runHook postInstall
