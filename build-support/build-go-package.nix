@@ -203,7 +203,7 @@ go.stdenv.mkDerivation (
     dir="$NIX_BUILD_TOP/go/bin"
     [ -e "$dir" ] && cp -r $dir $bin
   '' + ( lib.optionalString go.stdenv.isDarwin ''
-    for binary in $bin/bin*; do
+    for binary in $bin/bin/*; do
       echo $binary
       otool -L $binary
     done
