@@ -202,7 +202,12 @@ go.stdenv.mkDerivation (
     mkdir -p $bin
     dir="$NIX_BUILD_TOP/go/bin"
     [ -e "$dir" ] && cp -r $dir $bin
-
+  '' + ( lib.optionalString go.stdenv.isDarwin ''
+    for binary in $bin/bin*; do
+      echo $binary
+      obtool -L $binary
+    done
+  '' ) + ''
     runHook postInstall
   '';
 
