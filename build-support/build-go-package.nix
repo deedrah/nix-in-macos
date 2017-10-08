@@ -205,7 +205,7 @@ go.stdenv.mkDerivation (
   '' + ( lib.optionalString go.stdenv.isDarwin ''
     for binary in $bin/bin*; do
       echo $binary
-      obtool -L $binary
+      otool -L $binary
     done
   '' ) + ''
     runHook postInstall
